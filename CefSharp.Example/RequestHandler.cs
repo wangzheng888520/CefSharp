@@ -177,5 +177,10 @@ namespace CefSharp.Example
 
             return false;
         }
+
+        void IRequestHandler.OnResourceLoadComplete(IWebBrowser browserControl, IBrowser browser, IFrame frame, IRequest request, IResponse response, UrlRequestStatus status, long receivedContentLength)
+        {
+            
+        }
     }
 }

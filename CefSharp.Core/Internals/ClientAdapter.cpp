@@ -615,6 +615,21 @@ namespace CefSharp
             return handler->OnResourceResponse(_browserControl, browserWrapper, %frameWrapper, %requestWrapper, %responseWrapper);
         }
 
+        void ClientAdapter::OnResourceLoadComplete(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefResponse> response, URLRequestStatus status, int64 receivedContentLength)
+        {
+            auto handler = _browserControl->RequestHandler;
+
+            if (handler != nullptr)
+            {
+                auto browserWrapper = GetBrowserWrapper(browser->GetIdentifier(), browser->IsPopup());;
+                CefFrameWrapper frameWrapper(frame);
+                CefRequestWrapper requestWrapper(request);
+                CefResponseWrapper responseWrapper(response);
+
+                handler->OnResourceLoadComplete(_browserControl, browserWrapper, %frameWrapper, %requestWrapper, %responseWrapper, (UrlRequestStatus)status, receivedContentLength);
+            }
+        }
+
         void ClientAdapter::OnProtocolExecution(CefRefPtr<CefBrowser> browser, const CefString& url, bool& allowOSExecution)
         {
             auto handler = _browserControl->RequestHandler;
@@ -994,7 +1009,56 @@ namespace CefSharp
             auto argList = message->GetArgumentList();
             IJavascriptCallbackFactory^ callbackFactory = _browserAdapter->JavascriptCallbackFactory;
 
-            if (name == kEvaluateJavascriptResponse || name == kJavascriptCallbackResponse)
+            if (name == kOnContextCreatedRequest)
+            {
+                auto handler = _browserControl->RenderProcessMessageHandler;
+
+                if (handler != nullptr)
+                {
+                    auto browserWrapper = GetBrowserWrapper(browser->GetIdentifier(), browser->IsPopup());
+                    CefFrameWrapper frameWrapper(browser->GetFrame(GetInt64(argList, 0)));
+
+                    handler->OnContextCreated(_browserControl, browserWrapper, %frameWrapper);
+                }
+
+                handled = true;
+            }
+            else if (name == kOnFocusedNodeChanged)
+            {
+                auto handler = _browserControl->RenderProcessMessageHandler;
+                if (handler != nullptr)
+                {
+                    IDomNode^ node = nullptr;
+
+                    // 0: frame ID (int 64)
+                    // 1: is a node (bool)
+                    // 2: tag name (string)
+                    // 3: attributes (dictionary)
+                    auto browserWrapper = GetBrowserWrapper(browser->GetIdentifier(), browser->IsPopup());
+                    CefFrameWrapper frameWrapper(browser->GetFrame(GetInt64(argList, 0)));
+                    
+                    auto notEmpty = argList->GetBool(1);
+                    if (notEmpty)
+                    {
+                        // Node information was passed from the render process.
+                        auto tagName = StringUtils::ToClr(argList->GetString(2));
+                        auto argAttributes = argList->GetDictionary(3);
+                        auto attributes = gcnew System::Collections::Generic::Dictionary<String^, String^>();
+                        CefDictionaryValue::KeyList keys;
+                        argAttributes->GetKeys(keys);
+                        for (auto key : keys)
+                        {
+                            attributes->Add(StringUtils::ToClr(key), StringUtils::ToClr(argAttributes->GetString(key)));
+                        }
+
+                        node = gcnew DomNode(tagName, attributes);
+                    }
+
+                    // DomNode will be empty if input focus was cleared
+                    handler->OnFocusedNodeChanged(_browserControl, browserWrapper, %frameWrapper, node);
+                }
+            }
+            else if (name == kEvaluateJavascriptResponse || name == kJavascriptCallbackResponse)
             {
                 auto success = argList->GetBool(0);
                 auto callbackId = GetInt64(argList, 1);
@@ -1047,8 +1111,8 @@ namespace CefSharp
 
             auto message = CefProcessMessage::Create(kEvaluateJavascriptRequest);
             auto argList = message->GetArgumentList();
-            SetInt64(frameId, argList, 0);
-            SetInt64(idAndComplectionSource.Key, argList, 1);
+            SetInt64(argList, 0, frameId);
+            SetInt64(argList, 1, idAndComplectionSource.Key);
             argList->SetString(2, StringUtils::ToNative(script));
 
             auto browserWrapper = static_cast<CefSharpBrowserWrapper^>(GetBrowserWrapper(browserId, isBrowserPopup));
@@ -1069,12 +1133,12 @@ namespace CefSharp
             {
                 auto message = CefProcessMessage::Create(kJavascriptAsyncMethodCallResponse);
                 auto argList = message->GetArgumentList();
-                SetInt64(result->FrameId, argList, 0);
-                SetInt64(result->CallbackId.Value, argList, 1);
+                SetInt64(argList, 0, result->FrameId);
+                SetInt64(argList, 1, result->CallbackId.Value);
                 argList->SetBool(2, result->Success);
                 if (result->Success)
                 {
-                    SerializeV8Object(result->Result, argList, 3);
+                    SerializeV8Object(argList, 3, result->Result);
                 }
                 else
                 {

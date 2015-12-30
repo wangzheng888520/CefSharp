@@ -12,6 +12,8 @@
 #include "CefAppUnmanagedWrapper.h"
 
 using namespace System::Collections::Generic;
+using namespace System::Linq;
+using namespace CefSharp::Internals;
 
 namespace CefSharp
 {
@@ -20,15 +22,16 @@ namespace CefSharp
     {
     private:
         MCefRefPtr<CefAppUnmanagedWrapper> _cefApp;
-        
-    public:        
+
+    public:
         CefAppWrapper(IEnumerable<String^>^ args)
         {
             auto onBrowserCreated = gcnew Action<CefBrowserWrapper^>(this, &CefAppWrapper::OnBrowserCreated);
             auto onBrowserDestroyed = gcnew Action<CefBrowserWrapper^>(this, &CefAppWrapper::OnBrowserDestroyed);
             auto schemes = CefCustomScheme::ParseCommandLineArguments(args);
+            auto enableFocusedNodeChanged = CommandLineArgsParser::HasArgument(args, CefSharpArguments::EnableFocusedNodeChangedArgument);
 
-            _cefApp = new CefAppUnmanagedWrapper(schemes, onBrowserCreated, onBrowserDestroyed);
+            _cefApp = new CefAppUnmanagedWrapper(schemes, enableFocusedNodeChanged, onBrowserCreated, onBrowserDestroyed);
         };
 
         !CefAppWrapper()
@@ -44,6 +47,6 @@ namespace CefSharp
         int Run();
 
         virtual void OnBrowserCreated(CefBrowserWrapper^ cefBrowserWrapper) abstract;
-        virtual void OnBrowserDestroyed(CefBrowserWrapper^ cefBrowserWrapper) abstract;		
+        virtual void OnBrowserDestroyed(CefBrowserWrapper^ cefBrowserWrapper) abstract;
     };
 }

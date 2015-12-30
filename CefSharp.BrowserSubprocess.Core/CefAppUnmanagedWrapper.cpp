@@ -59,24 +59,40 @@ namespace CefSharp
 
     void CefAppUnmanagedWrapper::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)
     {
+        //Send a message to the browser processing signaling that OnContextCreated has been called
+        //only param is the FrameId. Currently an IPC message is only sent for the main frame - will see
+        //how viable this solution is and if it's worth expanding to sub/child frames.
+        if (frame->IsMain())
+        {
+            auto contextCreatedMessage = CefProcessMessage::Create(kOnContextCreatedRequest);
+
+            SetInt64(contextCreatedMessage->GetArgumentList(), 0, frame->GetIdentifier());
+
+            browser->SendProcessMessage(CefProcessId::PID_BROWSER, contextCreatedMessage);
+        }
+
         auto browserWrapper = FindBrowserWrapper(browser->GetIdentifier(), true);
 
         auto rootObjectWrappers = browserWrapper->JavascriptRootObjectWrappers;
         auto frameId = frame->GetIdentifier();
 
-        if (rootObjectWrappers->ContainsKey(frameId))
+        JavascriptRootObjectWrapper^ rootObject;
+        if (!rootObjectWrappers->TryGetValue(frameId, rootObject))
+        {
+            rootObject = gcnew JavascriptRootObjectWrapper(browser->GetIdentifier(), browserWrapper->BrowserProcess);
+            rootObjectWrappers->TryAdd(frameId, rootObject);
+        }
+
+        if (rootObject->IsBound)
         {
             LOG(WARNING) << "A context has been created for the same browser / frame without context released called previously";
         }
         else
         {
-            auto rootObject = gcnew JavascriptRootObjectWrapper(browser->GetIdentifier(), browserWrapper->BrowserProcess);
             if (!Object::ReferenceEquals(_javascriptRootObject, nullptr) || !Object::ReferenceEquals(_javascriptAsyncRootObject, nullptr))
             {
                 rootObject->Bind(_javascriptRootObject, _javascriptAsyncRootObject, context->GetGlobal());
             }
-
-            rootObjectWrappers->TryAdd(frameId, rootObject);
         }
     };
 
@@ -92,6 +108,49 @@ namespace CefSharp
             delete wrapper;
         }
     };
+
+    void CefAppUnmanagedWrapper::OnFocusedNodeChanged(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefDOMNode> node)
+    {
+        if (!_enableFocusedNodeChanged)
+        {
+            return;
+        }
+
+        auto focusedNodeChangedMessage = CefProcessMessage::Create(kOnFocusedNodeChanged);
+        auto list = focusedNodeChangedMessage->GetArgumentList();
+
+        // Needed in the browser process to get the frame.
+        SetInt64(list, 0, frame->GetIdentifier());
+
+        // The node will be empty if an element loses focus but another one
+        // doesn't gain focus. Only transfer information if the node is an
+        // element.
+        if (node != nullptr && node->IsElement())
+        {
+            // True when a node exists, false if it doesn't.
+            list->SetBool(1, true);
+
+            // Store the tag name.
+            list->SetString(2, node->GetElementTagName());
+
+            // Transfer the attributes in a Dictionary.
+            auto attributes = CefDictionaryValue::Create();
+            CefDOMNode::AttributeMap attributeMap;
+            node->GetElementAttributes(attributeMap);
+            for (auto iter : attributeMap)
+            {
+                attributes->SetString(iter.first, iter.second);
+            }
+
+            list->SetDictionary(3, attributes);
+        }
+        else
+        {
+            list->SetBool(1, false);
+        }
+
+        browser->SendProcessMessage(CefProcessId::PID_BROWSER, focusedNodeChangedMessage);
+    }
 
     CefBrowserWrapper^ CefAppUnmanagedWrapper::FindBrowserWrapper(int browserId, bool mustExist)
     {
@@ -138,7 +197,7 @@ namespace CefSharp
             else
             {
                 //TODO: Should be throw an exception here? It's likely that only a CefSharp developer would see this
-                // when they added a new message and havn't yet implemented the render process functionality.
+                // when they added a new message and haven't yet implemented the render process functionality.
                 throw gcnew Exception("Unsupported message type");
             }
 
@@ -149,7 +208,7 @@ namespace CefSharp
 
             //success: false
             responseArgList->SetBool(0, false);
-            SetInt64(callbackId, responseArgList, 1);
+            SetInt64(responseArgList, 1, callbackId);
             responseArgList->SetString(2, StringUtils::ToNative(errorMessage));
             browser->SendProcessMessage(sourceProcessId, response);
 
@@ -247,12 +306,6 @@ namespace CefSharp
                 else
                 {
                     auto jsCallbackId = GetInt64(argList, 2);
-                    auto parameterList = argList->GetList(3);
-                    CefV8ValueList params;
-                    for (CefV8ValueList::size_type i = 0; i < parameterList->GetSize(); i++)
-                    {
-                        params.push_back(DeserializeV8Object(parameterList, static_cast<int>(i)));
-                    }
 
                     auto callbackWrapper = callbackRegistry->FindWrapper(jsCallbackId);
                     if (callbackWrapper == nullptr)
@@ -268,6 +321,16 @@ namespace CefSharp
                         {
                             try
                             {
+                                auto parameterList = argList->GetList(3);
+                                CefV8ValueList params;
+                                
+                                //Needs to be called within the context as for Dictionary (mapped to struct)
+                                //a V8Object will be created
+                                for (CefV8ValueList::size_type i = 0; i < parameterList->GetSize(); i++)
+                                {
+                                    params.push_back(DeserializeV8Object(parameterList, static_cast<int>(i)));
+                                }
+
                                 result = value->ExecuteFunction(nullptr, params);
                                 success = result.get() != nullptr;
                         
@@ -298,7 +361,7 @@ namespace CefSharp
 
             auto responseArgList = response->GetArgumentList();
             responseArgList->SetBool(0, success);
-            SetInt64(callbackId, responseArgList, 1);
+            SetInt64(responseArgList, 1, callbackId);
             if (!success)
             {
                 responseArgList->SetString(2, errorMessage);
