@@ -1,4 +1,4 @@
-﻿// Copyright © 2010-2015 The CefSharp Authors. All rights reserved.
+﻿// Copyright © 2010-2016 The CefSharp Authors. All rights reserved.
 //
 // Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
 
@@ -32,6 +32,7 @@ namespace CefSharp.Example
                 { "/assets/js/application.js", Resources.assets_js_application_js },
                 { "/assets/js/jquery.js", Resources.assets_js_jquery_js },
                 { "/assets/js/shBrushCSharp.js", Resources.assets_js_shBrushCSharp_js },
+                { "/assets/js/shBrushJScript.js", Resources.assets_js_shBrushJScript_js },
                 { "/assets/js/shCore.js", Resources.assets_js_shCore_js },
 
                 { "/bootstrap/bootstrap-theme.min.css", Resources.bootstrap_theme_min_css },
@@ -45,6 +46,7 @@ namespace CefSharp.Example
                 { "/TooltipTest.html", Resources.TooltipTest },
                 { "/FramedWebGLTest.html", Resources.FramedWebGLTest },
                 { "/MultiBindingTest.html", Resources.MultiBindingTest },
+                { "/ScriptedMethodsTest.html", Resources.ScriptedMethodsTest },
             };
         }
 

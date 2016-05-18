@@ -1,4 +1,4 @@
-﻿// Copyright © 2010-2015 The CefSharp Authors. All rights reserved.
+﻿// Copyright © 2010-2016 The CefSharp Authors. All rights reserved.
 //
 // Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
 
@@ -15,6 +15,8 @@ namespace CefSharp.WinForms.Example
         public static int Main(string[] args)
         {
             const bool simpleSubProcess = false;
+
+            Cef.EnableHighDPISupport();
 
             //NOTE: Using a simple sub processes uses your existing application executable to spawn instances of the sub process.
             //Features like JSB, EvaluateScriptAsync, custom schemes require the CefSharp.BrowserSubprocess to function

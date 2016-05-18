@@ -1,4 +1,4 @@
-﻿// Copyright © 2010-2015 The CefSharp Project. All rights reserved.
+﻿// Copyright © 2010-2016 The CefSharp Project. All rights reserved.
 //
 // Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
 
@@ -29,7 +29,7 @@ namespace CefSharp
             auto onBrowserCreated = gcnew Action<CefBrowserWrapper^>(this, &CefAppWrapper::OnBrowserCreated);
             auto onBrowserDestroyed = gcnew Action<CefBrowserWrapper^>(this, &CefAppWrapper::OnBrowserDestroyed);
             auto schemes = CefCustomScheme::ParseCommandLineArguments(args);
-            auto enableFocusedNodeChanged = CommandLineArgsParser::HasArgument(args, CefSharpArguments::EnableFocusedNodeChangedArgument);
+            auto enableFocusedNodeChanged = CommandLineArgsParser::HasArgument(args, CefSharpArguments::FocusedNodeChangedEnabledArgument);
 
             _cefApp = new CefAppUnmanagedWrapper(schemes, enableFocusedNodeChanged, onBrowserCreated, onBrowserDestroyed);
         };
@@ -48,5 +48,10 @@ namespace CefSharp
 
         virtual void OnBrowserCreated(CefBrowserWrapper^ cefBrowserWrapper) abstract;
         virtual void OnBrowserDestroyed(CefBrowserWrapper^ cefBrowserWrapper) abstract;
+
+        static void EnableHighDPISupport()
+        {
+            CefEnableHighDPISupport();
+        }
     };
 }

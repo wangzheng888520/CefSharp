@@ -1,4 +1,4 @@
-﻿// Copyright © 2010-2015 The CefSharp Authors. All rights reserved.
+﻿// Copyright © 2010-2016 The CefSharp Authors. All rights reserved.
 //
 // Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
 
@@ -14,6 +14,8 @@ namespace CefSharp.BrowserSubprocess
         public static int Main(string[] args)
         {
             Kernel32.OutputDebugString("BrowserSubprocess starting up with command line: " + String.Join("\n", args));
+
+            CefAppWrapper.EnableHighDPISupport();
 
             int result;
 

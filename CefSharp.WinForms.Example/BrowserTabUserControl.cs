@@ -1,4 +1,4 @@
-﻿// Copyright © 2010-2015 The CefSharp Authors. All rights reserved.
+﻿// Copyright © 2010-2016 The CefSharp Authors. All rights reserved.
 //
 // Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
 
@@ -8,6 +8,8 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using CefSharp.WinForms.Example.Handlers;
 using CefSharp.WinForms.Internals;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace CefSharp.WinForms.Example
 {
@@ -46,6 +48,13 @@ namespace CefSharp.WinForms.Example
             browser.RegisterJsObject("bound", new BoundObject());
             browser.RegisterAsyncJsObject("boundAsync", new AsyncBoundObject());
             browser.RenderProcessMessageHandler = new RenderProcessMessageHandler();
+            //browser.ResourceHandlerFactory = new FlashResourceHandlerFactory();
+
+            var eventObject = new ScriptedMethodsBoundObject();
+            eventObject.EventArrived += OnJavascriptEventArrived;
+            // Use the default of camelCaseJavascriptNames
+            // .Net methods starting with a capitol will be translated to starting with a lower case letter when called from js
+            browser.RegisterJsObject("boundEvent", eventObject, camelCaseJavascriptNames:true);
 
             CefExample.RegisterTestResources(browser);
 
@@ -84,6 +93,25 @@ namespace CefSharp.WinForms.Example
         private void OnBrowserAddressChanged(object sender, AddressChangedEventArgs args)
         {
             this.InvokeOnUiThreadIfRequired(() => urlTextBox.Text = args.Address);
+        }
+
+        private static void OnJavascriptEventArrived(string eventName, object eventData)
+        {
+            switch (eventName)
+            {
+                case "click":
+                {
+                    var message = eventData.ToString();
+                    var dataDictionary = eventData as Dictionary<string, object>;
+                    if (dataDictionary != null)
+                    {
+                        var result = string.Join(", ", dataDictionary.Select(pair => pair.Key + "=" + pair.Value));
+                        message = "event data: " + result;
+                    }
+                    MessageBox.Show(message, "Javascript event arrived", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    break;
+                }
+            }
         }
 
         private void SetCanGoBack(bool canGoBack)

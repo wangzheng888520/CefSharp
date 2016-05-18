@@ -4,7 +4,8 @@
 [![CefSharp.WinForms](http://img.shields.io/nuget/v/CefSharp.WinForms.svg?style=flat)](http://www.nuget.org/packages/CefSharp.WinForms/)
 [![CefSharp.Wpf](http://img.shields.io/nuget/v/CefSharp.Wpf.svg?style=flat)](http://www.nuget.org/packages/CefSharp.Wpf/)
 [![CefSharp.OffScreen](http://img.shields.io/nuget/v/CefSharp.OffScreen.svg?style=flat)](http://www.nuget.org/packages/CefSharp.OffScreen/)
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/cefsharp/CefSharp?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
+Got a quick question? Jump on [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/cefsharp/CefSharp?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 [CefSharp](http://cefsharp.github.io/) lets you embed Chromium in .NET apps. It is a lightweight .NET wrapper around the [Chromium Embedded Framework (CEF)](https://bitbucket.org/chromiumembedded/cef) by Marshall A. Greenblatt. About 30% of the bindings are written in C++/CLI with the majority of code here is C#. It can be used from C# or VB, or any other CLR language. CefSharp provides both WPF and WinForms web browser control implementations.
 
@@ -28,9 +29,9 @@ Stable binaries are released on NuGet, and contain everything you need  to embed
 
 ## Contact
 
-If something is missing/incomplete, please don't hesitate to ask on [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/cefsharp/CefSharp?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) or [Stackoverflow](http://stackoverflow.com/questions/tagged/cefsharp). Before opening an issue or submitting a `PR` please read [CONTRIBUTING](https://github.com/cefsharp/CefSharp/blob/master/CONTRIBUTING.md)
+If you have a simple question please start by asking it on [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/cefsharp/CefSharp?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge). Before opening an issue or submitting a `PR` please read [CONTRIBUTING](https://github.com/cefsharp/CefSharp/blob/master/CONTRIBUTING.md)
 
-The [CefSharp Google Group](https://groups.google.com/forum/#!forum/cefsharp) is no longer very active. It is however a useful resource for archived questions/answers.
+[Stackoverflow](http://stackoverflow.com/questions/tagged/cefsharp) as always is a useful resource. The [CefSharp Google Group](https://groups.google.com/forum/#!forum/cefsharp) is no longer very active. It is however a useful resource for archived questions/answers.
 
 ## Branches & Forks
 
@@ -58,6 +59,7 @@ Every commit on `master` produces a `Nuget` package. Use at your own risk! [CefS
 | Branch | CEF Version | VC++ Version | .Net Version | Status |
 |--------|-------------|--------------|--------------|--------|
 | [master](https://github.com/cefsharp/CefSharp/) | 2526 | 2013 | 4.0 | Development |
+| [cefsharp/47](https://github.com/cefsharp/CefSharp/tree/cefsharp/47) | 2526 | 2013 | 4.0 | **Pre-Release** |
 | [cefsharp/45](https://github.com/cefsharp/CefSharp/tree/cefsharp/45) | 2454 | 2013 | 4.0 | **Release** |
 | [cefsharp/43](https://github.com/cefsharp/CefSharp/tree/cefsharp/43) | 2357 | 2012 | 4.0 | **Release** |
 | [cefsharp/41](https://github.com/cefsharp/CefSharp/tree/cefsharp/41) | 2272 | 2012 | 4.0 | Unsupported |
