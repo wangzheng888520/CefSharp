@@ -7,6 +7,7 @@
 #include "Stdafx.h"
 
 #include <msclr/lock.h>
+#include <msclr/marshal.h>
 #include <include/cef_version.h>
 #include <include/cef_runnable.h>
 #include <include/cef_origin_whitelist.h>
@@ -16,6 +17,7 @@
 #include "Internals/CookieManager.h"
 #include "Internals/PluginVisitor.h"
 #include "CefSettings.h"
+#include "RequestContext.h"
 #include "SchemeHandlerFactoryWrapper.h"
 #include "Internals/CefTaskScheduler.h"
 #include "Internals/CefGetGeolocationCallbackWrapper.h"
@@ -23,6 +25,7 @@
 using namespace System::Collections::Generic; 
 using namespace System::Linq;
 using namespace System::Reflection;
+using namespace msclr::interop;
 
 namespace CefSharp
 {
@@ -40,17 +43,11 @@ namespace CefSharp
             _disposables = gcnew HashSet<IDisposable^>();
         }
 
-        static void ParentProcessExitHandler(Object^ sender, EventArgs^ e)
-        {
-            if (Cef::IsInitialized)
-            {
-                Cef::Shutdown();
-            }
-        }
-
     public:
         /// <summary>
-        /// Called on the browser process UI thread immediately after the CEF context has been initialized. 
+        /// Called on the CEF UI thread immediately after the CEF context has been initialized.
+        /// You can now access the Global RequestContext through Cef.GetGlobalRequestContext() - this is the
+        /// first place you can set Preferences (e.g. proxy settings, spell check dictionaries).
         /// </summary>
         static property Action^ OnContextInitialized;
 
@@ -202,11 +199,6 @@ namespace CefSharp
             }
 
             _initialized = success;
-
-            if (_initialized && shutdownOnProcessExit)
-            {
-                AppDomain::CurrentDomain->ProcessExit += gcnew EventHandler(ParentProcessExitHandler);
-            }
 
             return success;
         }
@@ -385,11 +377,6 @@ namespace CefSharp
         /// <summary>
         /// Async returns a list containing Plugin Information
         /// (Wrapper around CefVisitWebPluginInfo)
-        /// The Task will be cancelled and a TaskCanceledException throw
-        /// if the Task does not complete within 2000ms
-        /// Documentation for CefWebPluginInfoVisitor.Visit states
-        /// `This method may never be called if no plugins are found.`
-        /// hence the Task cancelled timeout
         /// </summary>
         /// <return>Returns List of <see cref="Plugin"/> structs.</return>
         static Task<List<Plugin>^>^ GetPlugins()
@@ -477,6 +464,60 @@ namespace CefSharp
             CefGetGeolocation(callback);
 
             return callback->GetTask();
+        }
+
+        /// <summary>
+        /// Returns true if called on the specified CEF thread.
+        /// </summary>
+        /// <return>Returns true if called on the specified thread.</return>
+        static bool CurrentlyOnThread(CefThreadIds threadId)
+        {
+            return CefCurrentlyOn((CefThreadId)threadId);
+        }
+
+        /// <summary>
+        /// Gets the Global Request Context. Make sure to Dispose of this object when finished.
+        /// </summary>
+        /// <return>Returns the global request context or null.</return>
+        static IRequestContext^ GetGlobalRequestContext()
+        {
+            auto context = CefRequestContext::GetGlobalContext();
+
+            if (context.get())
+            {
+                return gcnew RequestContext(context);
+            }
+
+            return nullptr;
+        }
+
+        /// <summary>
+        /// Calls LoadLibraryEx with LOAD_WITH_ALTERED_SEARCH_PATH to load libcef.dll
+        /// Make sure to set settings.BrowserSubprocessPath and settings.LocalesDirPath
+        /// </summary>
+        /// <param name="path">Path to libcef.dll</param>
+        static void LoadLibCefLibrary(String^ path)
+        {
+            String^ absolutePathToLibCef;
+            if (path->EndsWith("libcef.dll", StringComparison::OrdinalIgnoreCase))
+            {
+                absolutePathToLibCef = path;
+            }
+            else
+            {
+                absolutePathToLibCef = Path::Combine(path, "libcef.dll");
+            }
+
+            if (!File::Exists(absolutePathToLibCef))
+            {
+                throw gcnew FileNotFoundException("Unable to locate libcef.dll", absolutePathToLibCef);
+            }
+
+            marshal_context context;
+
+            LPCTSTR cstr = context.marshal_as<const TCHAR*>(absolutePathToLibCef);
+
+            LoadLibraryEx(cstr, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
         }
     };
 }
